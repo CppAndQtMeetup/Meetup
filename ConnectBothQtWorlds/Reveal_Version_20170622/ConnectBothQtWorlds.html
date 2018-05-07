@@ -1,0 +1,866 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+	<meta charset="utf-8">
+
+	<title>Connect both Qt worlds - QML and C++</title>
+
+	<meta name="description" content="">
+	<meta name="author" content="Michael Bätzner">
+	<meta name="date" content="22.05.2017">
+	<meta name="title" content="Connect both Qt worlds - QML and C++">
+
+	<meta name="apple-mobile-web-app-capable" content="yes">
+	<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+	<link rel="stylesheet" href="css/reveal.css">
+	<link rel="stylesheet" href="css/theme/white.css" id="theme">
+	<link rel="stylesheet" href="css/akademiestyle.css">
+	<!--<link rel="stylesheet" href="css/uidstyle.css">-->
+
+	<!-- Theme used for syntax highlighting of code -->
+	<link rel="stylesheet" href="lib/css/zenburn.css">
+	
+	
+	<!-- Printing and PDF exports -->
+	<script>
+		var link = document.createElement('link');
+		link.rel = 'stylesheet';
+		link.type = 'text/css';
+		link.href = window.location.search.match(/print-pdf/gi) ? 'css/print/pdf.css' : 'css/print/paper.css';
+		document.getElementsByTagName('head')[0].appendChild(link);
+	</script>
+
+	<!--[if lt IE 9]>
+		<script src="lib/js/html5shiv.js"></script>
+		<![endif]-->
+	
+</head>
+
+<body>
+	<div class="reveal">
+		<!-- Any section element inside of this container is displayed as a slide -->
+		<div class="slides">
+			<section class="start_page page">
+				<div class="content_container">
+					<div class="logo_container">
+						<div class="logo"></div>
+					</div>
+					<h1>Connect both Qt worlds</h1>
+					<h3>QML and C++</h3>
+					<div class="additional_info">22.06.2017, Ludwigsburg</div>
+					<div class="small">
+						Created by <a href="http://www.uid.com">UID</a> / <a href="mailto:michael.baetzner@uid.com">Michael Bätzner</a>
+					</div>
+				</div>
+			</section>
+			
+			<!-- ################################################################### -->
+			<section class="page">
+				<section>
+					<div class="content_container">
+						<div class="title_area">
+							<h2>Ziel</h2>
+						</div>
+						<div class="content_area">
+							Anzeige und Editierung von Daten einer C++ Modelklasse "Person" im QML
+							<div style="margin-left: 10%">
+								<pre style="float: left; max-width: 40%;"><code class="cpp" data-trim>
+class Person
+{
+public:
+    Person();
+
+    enum Geschlecht{
+        Unbekannt,
+        Maennlich,
+        Weiblich
+    };
+
+    std::string  vorname = "";
+    std::string  name = "";
+    int alter = 0;
+    Geschlecht geschlecht;
+};
+
+</code></pre>
+								<img data-src="QML_Person.png" alt="Down arrow">
+							</div>
+						</div>
+					</div>
+				</section>
+				
+				<section>
+					<div class="content_container">
+						<div class="title_area">
+							<h2>Einschränkung</h2>
+						</div>
+						<div class="content_area">
+							Es ist nicht möglich reine C++ Klassen im QML zu verwenden!<br>
+							Die Kommunikation zwischen QML und C++ erfolgt über das Meta-Object System.
+						</div>
+					</div>
+				</section>
+				
+				<section>
+					<div class="content_container">
+						<div class="title_area">
+							<h2>Lösung</h2>
+						</div>
+						<div class="content_area">
+							Wrapper-Klasse (ViewModel) um die Modelklasse herum.
+						</div>
+					</div>
+				</section>
+			</section>
+			
+			<!-- ################################################################### -->
+			<section class="page">
+				<section>
+					<div class="content_container">
+						<div class="title_area">
+							<h2>Agenda</h2>
+						</div>
+						<div class="content_area">
+							<ul>
+								<li>Meta-Object System
+									<ul>
+										<li>QObject</li>
+										<li>Signals / Slots</li>
+										<li>Q_PROPERTY</li>
+										<li>Q_INVOKABLE</li>
+										<li>Q_ENUM</li>
+									</ul>
+								</li>
+								<li>Praktisches Beispiel
+									<ul>
+										<li>Model</li>
+										<li>ViewModel</li>
+										<li>View</li>
+									</ul>
+								</li>
+								<li>ViewModel aus C++ hinzufügen</li>
+								<li>ViewModel in QML erstellen</li>
+							</ul>
+						</div>
+					</div>
+				</section>
+			</section>
+					
+			<!-- ################################################################### -->
+			<section class="page">
+				<section>
+					<div class="content_container">
+						<div class="title_area">
+							<h2>Meta-Object System</h2>
+						</div>
+						<div class="content_area">
+							stellt folgendes zur Verfügung:<br>
+							<ul>
+								<li>Signals/Slots</li>
+								<li>Runtime Informationen (ohne RTTI)</li>
+								<li>Dynamische Properties</li>
+							</ul>
+						</div>
+					</div>
+				</section>
+				<section>
+					<div class="content_container">
+						<div class="title_area">
+							<h2>Meta-Object System</h2>
+						</div>
+						<div class="content_area">
+							basiert aus folgenden Komponenten:<br>
+							<ul>
+								<li>QObject Basisklasse</li>
+								<li>Q_OBJECT Macro innerhalb der Klassen</li>
+								<li>Meta-Object Compiler</li>
+							</ul>
+						</div>
+					</div>
+				</section>
+				<section>
+					<div class="content_container">
+						<div class="title_area">
+							<h2>QObject</h2>
+						</div>
+						<div class="content_area">
+							<ul>
+								<li>Basisklasse aller Qt Objekte</li>
+								<li>Ermöglicht die Objekt Kommunikation mit signals and slots</li>
+								<li>Ermöglicht Speicher-Management durch Objekt-Baum</li>
+								<li>Per Default nicht kopierbar!</li>
+							</ul>
+						</div>
+					</div>
+				</section>
+				<section>
+					<div class="content_container">
+						<div class="title_area">
+							<h2>QObject</h2>
+						</div>
+						<div class="content_area">
+<pre><code class="cpp" data-trim>
+#ifndef FOO_H
+#define FOO_H
+
+#include &lt;QObject&gt;
+
+class Foo : public QObject
+{
+	Q_OBJECT
+public:
+	explicit Foo(QObject *parent = 0);
+
+signals:
+
+public slots:
+};
+
+#endif // FOO_H
+</code></pre>
+						</div>
+					</div>
+				</section>
+				<section>
+					<div class="content_container">
+						<div class="title_area">
+							<h2>Signals/Slots</h2>
+						</div>
+						<div class="content_area">
+							<ul>
+								<li>Event-Mechanismus</li>
+								<li>Alternative zu Callbacks<br>(ca. 10x langsamer im Vergleich zu Callbacks)</li>
+								<li>Typensicher</li>
+								<li>Ermöglicht lose Kopplung</li>
+							</ul>
+						</div>
+					</div>
+				</section>
+				<section>
+					<div class="content_container">
+						<div class="content_area">
+							<img data-src="abstract-connections.png" alt="Down arrow">
+						</div>
+					</div>
+				</section>
+				<section>
+					<div class="content_container">
+						<div class="title_area">
+							<h3>Voraussetzungen</h3>
+						</div>
+						<div class="content_area">
+							<ul>
+								<li>Klasse muss von QObject abgeleitet sein</li>
+								<li>Q_OBJECT Macro muss im private Bereich der Klasse eingetragen sein</li>
+							</ul>
+						</div>
+					</div>
+				</section>
+				<section>
+					<div class="content_container">
+						<div class="title_area">
+							<h3>Signals</h3>
+						</div>
+						<div class="content_area">
+							<ul>
+								<li>werden im <b>signals</b> Bereich der Header-Datei definiert</li>
+								<li>werden nicht implementiert</li>
+								<li>werden gesendet wenn sich der State des Objekts ändert</li>
+								<li>sind public</li>
+								<li>können keinen Rückgabewert haben</li>
+								<li>können Parameter enthalten</li>
+							</ul>
+						</div>
+					</div>
+				</section>
+				<section>
+					<div class="content_container">
+						<div class="title_area">
+							<h3>Slots</h3>
+						</div>
+						<div class="content_area">
+							<ul>
+								<li>werden im <b>private slots</b> oder im <b>public slots</b> Bereich der Header-Datei definiert</li>
+								<li>sind ansonsten normale C++ Funktionen</li>
+							</ul>
+						</div>
+					</div>
+				</section>		
+				<section>
+					<div class="content_container">
+						<div class="title_area">
+							<h3>Slots</h3>
+						</div>
+							<pre><code data-trim data-noescape>
+#include &lt;QObject&gt;
+
+class Counter : public QObject
+{
+	Q_OBJECT
+
+public:
+	Counter() { m_value = 0; }
+
+	int value() const { return m_value; }
+
+public slots:
+	void setValue(int value)
+	{
+		if (value != m_value) {
+			m_value = value;
+			emit valueChanged(value);
+		}
+	}
+
+signals:
+	void valueChanged(int newValue);
+
+private:
+	int m_value;
+};
+						</code></pre>
+					</div>
+				</section>			
+				<section>
+					<div class="content_container">
+						<div class="title_area">
+							<h3>Signals/Slots</h3>
+						</div>
+							<pre><code data-trim data-noescape>
+   Counter a, b;
+   QObject::connect(&a, &Counter::valueChanged, &b, &Counter::setValue);
+   QObject::connect(&a, SIGNAL(valueChanged(int)), &b, SLOT(setValue(int))); //Alternative schreibweise
+
+   a.setValue(12);     // a.value() == 12, b.value() == 12
+   b.setValue(48);     // a.value() == 12, b.value() == 48
+						</code></pre>
+					</div>
+				</section>
+				<section>
+					<div class="content_container">
+						<div class="title_area">
+							<h2>Signals/Slots</h2>
+						</div>
+						<div class="content_area">
+							<ul>
+								<li>werden direkt ausgeführt</li>
+								<li>Ausnahme: <b>queued connections</b></li>
+								<li>können über <b>QObject::disconnect()</b> getrennt werden</li>
+								<li>jeder connect() wird ausgeführt (Duplikat möglich!)</li>
+								<li>Ausnahme: <b>unique connections</b></li>
+							</ul>
+						</div>
+					</div>
+				</section>
+				<section>
+					<div class="content_container">
+						<div class="title_area">
+							<h2>Q_PROPERTY</h2>
+						</div>
+						<div class="content_area">
+							<ul>
+								<li>definiert weiter Properties im Meta-Object System</li>
+								<li>nutzt Signals/Slots</li>
+							</ul>
+						</div>
+					</div>
+				</section>
+				<section>
+					<div class="content_container">
+						<div class="title_area">
+							<h2>Q_PROPERTY</h2>
+						</div>
+						<div class="content_area">
+							<pre><code data-trim data-noescape>
+Q_PROPERTY(int priority READ priority WRITE setPriority NOTIFY priorityChanged)
+Q_PROPERTY(bool initialize MEMBER m_initialize NOTIFY initializeChanged)
+Q_PROPERTY(QString Name READ Name CONSTANT)
+							</code></pre>
+						</div>
+					</div>
+				</section>
+				<section>
+					<div class="content_container">
+						<div class="title_area">
+							<h2>Q_INVOKABLE</h2>
+						</div>
+						<div class="content_area">
+							<ul>
+								<li>ermöglicht Funktionen aus dem Meta-Object System heraus aufzurufen</li>
+								<li>ACHTUNG!!!<br>
+								Wenn eine Methode ein Objekt zurückgibt wird<br>
+								die Ownership des Objektes auf die QML Engine übertragen.<br>
+								</li>
+								<li>Deswegen:<br>
+								Am besten Q_INVOKABLE Methoden nur für Aktionen verwenden<br>
+								z.B. void writeDataToFile();<br>
+								Für alles andere Q_PROPERTY verwenden.
+								</li>
+							</ul>
+						</div>
+					</div>
+				</section>
+				<section>
+					<div class="content_container">
+						<div class="title_area">
+							<h2>Q_INVOKABLE</h2>
+						</div>
+						<div class="content_area">
+							<pre><code data-trim data-noescape>
+Q_INVOKABLE void writeDataToFile();
+							</code></pre>
+						</div>
+					</div>
+				</section>
+				<section>
+					<div class="content_container">
+						<div class="title_area">
+							<h2>Q_ENUM</h2>
+						</div>
+						<div class="content_area">
+							<ul>
+								<li>ermöglicht die Verwendung einer Enumeration im Meta-Object System</li>
+								<li>ermöglicht die Verwendung von QMetaEnum</li>
+							</ul>
+						</div>
+					</div>
+				</section>
+				<section>
+					<div class="content_container">
+						<div class="title_area">
+							<h2>Q_ENUM</h2>
+						</div>
+						<div class="content_area">
+							<pre><code data-trim data-noescape>
+class MyClass : public QObject
+{
+    Q_OBJECT
+
+public:
+    MyClass(QObject *parent = 0);
+    ~MyClass();
+
+    enum Priority { High, Low, VeryHigh, VeryLow };
+    Q_ENUM(Priority)
+	
+    void setPriority(Priority priority);
+    Priority priority() const;
+};
+							</code></pre>
+						</div>
+					</div>
+				</section>
+				<section>
+					<div class="content_container">
+						<div class="title_area">
+							<h2>Q_ENUM</h2>
+						</div>
+						<div class="content_area">
+							<pre><code class="cpp"> 
+QMetaEnum metaEnum = QMetaEnum::fromType&lt;MyClass::Priority&gt;();
+qDebug() << metaEnum.valueToKey(MyClass::Priority::VeryHigh);
+							</code></pre>
+						</div>
+					</div>
+				</section>
+			</section>
+		
+
+			<!-- ################################################################### -->
+			<section class="page">
+				<section>
+					<div class="content_container">
+						<div class="title_area">
+							<h2>Praktisches Beispiel</h2>
+						</div>
+				</section>
+				<section>
+					<div class="content_container">
+						<div class="title_area">
+							<h2>Person - Model</h2>
+						</div>
+						<div class="content_area">
+							<pre><code class="cpp"> 
+class Person
+{
+public:
+    Person();
+
+    enum Geschlecht{
+        Unbekannt,
+        Maennlich,
+        Weiblich
+    };
+
+    std::string  vorname = "";
+    std::string  name = "";
+    int alter = 0;
+    Geschlecht geschlecht;
+};
+
+							</code></pre>
+						</div>
+						</div>
+				</section>
+				<section>
+					<div class="content_container">
+						<div class="title_area">
+							<h2>Person - ViewModel</h2>
+						</div>
+						<div class="content_area">
+							<ul>
+								<li>Klasse abgeleitet von QObject</li>
+								<li>Macro Q_Object im privaten Bereich der Klasse</li>
+								<li>Q_PROPERTY für den Zugriff</li>
+								<li>Definierung der Enum und Registrierung mit Q_ENUM</li>
+							</ul>
+						</div>
+					</div>
+				</section>
+				<section>
+					<div class="content_container">
+						<div class="title_area">
+							<h2>Person - ViewModel</h2>
+						</div>
+						<div class="content_area">
+							<pre><code class="cpp"> 
+#ifndef PERSONVIEWMODEL_H
+#define PERSONVIEWMODEL_H
+
+#include &lt;Object&gt;
+#include "person.h"
+
+class PersonViewModel : public QObject
+{
+    Q_OBJECT
+    Q_PROPERTY(QString vorname READ vorname WRITE setVorname NOTIFY vornameChanged)
+    Q_PROPERTY(QString name READ name WRITE setName NOTIFY nameChanged)
+    Q_PROPERTY(int alter READ alter WRITE setAlter NOTIFY alterChanged)
+    Q_PROPERTY(Geschlecht geschlecht READ geschlecht WRITE setGeschlecht NOTIFY geschlechtChanged)
+    
+public:
+    explicit PersonViewModel(QObject *parent = nullptr);
+    
+    enum Geschlecht{
+        Unbekannt,
+        Maennlich,
+        Weiblich
+    };
+    Q_ENUM(Geschlecht)
+    
+    QString vorname() const
+    {
+        return QString::fromStdString(m_person.vorname);
+    }
+    
+    QString name() const
+    {
+        return QString::fromStdString(m_person.name);
+    }
+    
+    int alter() const
+    {
+        return m_person.alter;
+    }
+    
+    Geschlecht geschlecht() const
+    {
+        return static_cast<Geschlecht>(m_person.geschlecht);
+    }
+    
+    Q_INVOKABLE void feiertGeburtstag(){
+        setAlter(m_person.alter + 1);
+    }
+    
+signals:
+    void vornameChanged(QString vorname);
+    void nameChanged(QString name);
+    void alterChanged(int alter);
+    void geschlechtChanged(Geschlecht geschlecht);
+    
+public slots:
+    void setVorname(QString vorname)
+    {
+        if (QString::fromStdString(m_person.vorname) == vorname)
+            return;
+        
+        m_person.vorname = vorname.toStdString();
+        emit vornameChanged(vorname);
+    }
+    
+    void setName(QString name)
+    {
+        if (QString::fromStdString(m_person.name) == name)
+            return;
+        
+        m_person.name = name.toStdString();
+        emit nameChanged(name);
+    }
+    
+    void setAlter(int alter)
+    {
+        if (m_person.alter == alter)
+            return;
+        
+        m_person.alter = alter;
+        emit alterChanged(alter);
+    }
+    
+    void setGeschlecht(Geschlecht geschlecht)
+    {
+        if (m_person.geschlecht == geschlecht)
+            return;
+        
+        m_person.geschlecht = static_cast&lt;Person::Geschlecht&gt;(geschlecht);
+        emit geschlechtChanged(geschlecht);
+    }
+    
+private:
+    Person m_person;
+};
+
+#endif // PERSONVIEWMODEL_H
+							</code></pre>
+						</div>
+					</div>
+				</section>
+				<section>
+					<div class="content_container">
+						<div class="title_area">
+							<h2>Person - View</h2>
+						</div>
+						<div class="content_area">
+							<pre><code class="qml"> 
+import QtQuick 2.0
+import QtQuick.Layouts 1.1
+import QtQuick.Controls 1.4
+import PersonViewModel 1.0
+
+GridLayout {
+    columns: 2
+    property variant person
+    property bool editable: true
+
+    Text{
+        text: "Geschlecht"
+        font.bold: true
+        color: editable ? "black" : "grey"
+    }
+
+    Row{
+        spacing: 10
+
+        ExclusiveGroup{ id: geschlecht }
+        RadioButton{
+            text: "männlich"
+            checked: person.geschlecht === Person.Maennlich
+            onCheckedChanged: checked ? person.geschlecht = Person.Maennlich : null
+            enabled: editable
+            exclusiveGroup: geschlecht
+        }
+
+        RadioButton{
+            id: weiblich
+            text: "weiblich"
+            checked: person.geschlecht === Person.Weiblich
+            onCheckedChanged: checked ? person.geschlecht = Person.Weiblich : null
+            enabled: editable
+            exclusiveGroup: geschlecht
+        }
+    }
+
+    Text{
+        text: "Vorname"
+        font.bold: true
+        color: editable ? "black" : "grey"
+    }
+
+    TextField{
+        text: person.vorname
+        onTextChanged: person.vorname = text
+        enabled: editable
+        textColor: editable ? "black" : "grey"
+    }
+    Text{
+        text: "Name"
+        font.bold: true
+        color: editable ? "black" : "grey"
+    }
+
+    TextField{
+        text: person.name
+        onTextChanged: person.name = text
+        enabled: editable
+        textColor: editable ? "black" : "grey"
+    }
+
+    Text{
+        text: "Alter"
+        font.bold: true
+        color: editable ? "black" : "grey"
+    }
+
+    TextField{
+        text: person.alter
+        onTextChanged: person.alter = text
+        enabled: editable
+        textColor: editable ? "black" : "grey"
+    }
+
+    Button{
+        Layout.fillWidth: true
+        text: "feiert Geburtstag"
+        onClicked: person.feiertGeburtstag()
+    }
+}
+							</code></pre>
+						</div>
+					</div>
+				</section>
+			</section>
+			<!-- ################################################################### -->		
+			<section class="page">
+				<section>
+					<div class="content_container">
+						<div class="title_area">
+							<h2>ViewModel aus C++ hinzufügen</h2>
+						</div>
+						<div class="content_area">
+							Eine Instanz eines C++ Objektes erfolgt über ein Property des rootContext der QML-Engine
+						</div>
+					</div>
+				</section>
+				<section>
+					<div class="content_container">
+						<div class="title_area">
+							<h2>ViewModel aus C++ hinzufügen</h2>
+						</div>
+						<div class="content_area">
+							<pre><code class="cpp">
+PersonViewModel cppPerson;
+cppPerson.setVorname("Max");
+cppPerson.setName("Mustermann");
+cppPerson.setAlter(32);
+cppPerson.setGeschlecht(PersonViewModel::Maennlich);
+
+QQmlApplicationEngine engine;
+engine.rootContext()->setContextProperty("cppPerson", &cppPerson);
+							</code></pre>
+						</div>
+					</div>
+				</section>
+				<section>
+					<div class="content_container">
+						<div class="title_area">
+							<h2>QML</h2>
+						</div>
+						<div class="content_area">
+							<pre><code class="cpp">
+
+PersonView{
+    person: cppPerson
+}
+							</code></pre>
+						</div>
+					</div>
+				</section>
+			</section>
+			<!-- ################################################################### -->
+			<section class="page">
+				<section>
+					<div class="content_container">
+						<div class="title_area">
+							<h2>ViewModel in QML erstellen</h2>
+						</div>
+						<div class="content_area">
+						Um eine Instanz einer C++ Klasse im QML zu erstellen muss dieser Typ im QML Kontext registriert werden.
+						</div>
+					</div>
+				</section>
+				<section>
+					<div class="content_container">
+						<div class="title_area">
+							<h2>ViewModel in QML erstellen</h2>
+						</div>
+						<div class="content_area">
+							<pre><code class="cpp">
+qmlRegisterType&lt;PersonViewModel&gt;("PersonViewModel", 1, 0, "Person");
+							</code></pre>
+						</div>
+					</div>
+				</section>
+				<section>
+					<div class="content_container">
+						<div class="title_area">
+							<h2>ViewModel in QML erstellen</h2>
+						</div>
+						<div class="content_area">
+							<pre><code class="cpp">
+import PersonViewModel 1.0
+
+...
+
+Person{
+    id: personQML
+    vorname: "Jane"
+    name: "Doe"
+    alter: 42
+    geschlecht: Person.Weiblich
+}
+							</code></pre>
+						</div>
+					</div>
+				</section>
+				<section>
+					<div class="content_container">
+						<div class="title_area">
+							<h2>QML</h2>
+						</div>
+						<div class="content_area">
+							<pre><code class="cpp">
+
+PersonView{
+    person: personQML
+}
+							</code></pre>
+						</div>
+					</div>
+				</section>
+			</section>
+		</div>
+	</div>
+
+	<script src="lib/js/head.min.js"></script>
+	<script src="js/reveal.js"></script>
+	<script src="js/jquery-3.2.1.min.js"></script>
+<!--<script src="js/uid_customized.js"></script> -->
+
+	<script>
+		// More info https://github.com/hakimel/reveal.js#configuration
+		Reveal.initialize({
+			controls: true,
+			progress: true,
+			history: true,
+			center: true,
+
+			transition: 'slide', // none/fade/slide/convex/concave/zoom
+
+			// More info https://github.com/hakimel/reveal.js#dependencies
+			dependencies: [
+				{ src: 'lib/js/classList.js', condition: function () { return !document.body.classList; } },
+				{ src: 'plugin/markdown/marked.js', condition: function () { return !!document.querySelector('[data-markdown]'); } },
+				{ src: 'plugin/markdown/markdown.js', condition: function () { return !!document.querySelector('[data-markdown]'); } },
+				{ src: 'plugin/highlight/highlight.js', async: true, callback: function () { hljs.initHighlightingOnLoad(); } },
+				{ src: 'plugin/zoom-js/zoom.js', async: true },
+				{ src: 'plugin/notes/notes.js', async: true }
+			]
+		});
+	</script>
+
+</body>
+
+</html>

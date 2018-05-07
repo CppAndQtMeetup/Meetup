@@ -1,0 +1,14 @@
+@font-face {
+    font-family: 'UID Sans Bold';
+    src: url('UIDSansBold.ttf') format('truetype');
+}
+
+@font-face {
+    font-family: 'UID Sans Light';
+    src: url('UIDSansLight.ttf') format('truetype');
+}
+
+@font-face {
+    font-family: 'UID Sans Regular';
+    src: url('UIDSansRegular.ttf') format('truetype');
+}
