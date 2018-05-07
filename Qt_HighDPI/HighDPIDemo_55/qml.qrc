@@ -1,0 +1,9 @@
+<RCC>
+    <qresource prefix="/">
+        <file>main.qml</file>
+        <file>Qt.png</file>
+        <file>SVG_logo.svg</file>
+        <file>+high/Qt.png</file>
+        <file>+middle/Qt.png</file>
+    </qresource>
+</RCC>
